@@ -47,7 +47,7 @@ type Messages interface {
 
 const (
 	// DefaultBaseRoundTimeout is the default base round (round 0) timeout
-	DefaultBaseRoundTimeout = 10 * time.Second
+	DefaultBaseRoundTimeout = 4 * time.Second
 	roundFactorBase         = float64(2)
 )
 
@@ -1299,17 +1299,11 @@ func (i *IBFT) subscribe(details messages.SubscriptionDetails) *messages.Subscri
 
 // getRoundTimeout creates a round timeout based on the base timeout and the current round.
 // Exponentially increases timeout depending on the round number.
-// For instance:
-//   - round 1: 1 sec
-//   - round 2: 2 sec
-//   - round 3: 4 sec
-//   - round 4: 8 sec
-func getRoundTimeout(baseRoundTimeout, additionalTimeout time.Duration, round uint64) time.Duration {
-	var (
-		baseDuration = int(baseRoundTimeout)
-		roundFactor  = int(math.Pow(roundFactorBase, float64(round)))
-		roundTimeout = time.Duration(baseDuration * roundFactor)
-	)
+func getRoundTimeout(baseRoundTimeout time.Duration, additionalTimeout time.Duration, round uint64) time.Duration {
+	if round == 0 {
+		return baseRoundTimeout
+	}
 
-	return roundTimeout + additionalTimeout
+	var roundFactor = int(math.Pow(roundFactorBase, float64(round)))
+	return baseRoundTimeout + time.Duration(roundFactor)*time.Second + additionalTimeout
 }
