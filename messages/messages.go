@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/0xPolygon/go-ibft/messages/proto"
@@ -186,7 +187,6 @@ func (ms *Messages) GetValidMessages(
 
 			continue
 		}
-
 		validMessages = append(validMessages, message)
 	}
 
@@ -195,7 +195,24 @@ func (ms *Messages) GetValidMessages(
 		delete(messages, key)
 	}
 
+	// delete duplicate entries
+	for i := 0; i < len(validMessages); i++ {
+		for j := i + 1; j < len(validMessages); j++ {
+			if isSameMessage(validMessages[i], validMessages[j]) {
+				validMessages = append(validMessages[:j], validMessages[j+1:]...)
+				j--
+			}
+		}
+	}
+
 	return validMessages
+}
+
+func isSameMessage(a *proto.IbftMessage, b *proto.IbftMessage) bool {
+	return a.View.Height == b.View.Height &&
+		a.View.Round == b.View.Round &&
+		a.Type.Type() == b.Type.Type() &&
+		bytes.Equal(a.From, b.From)
 }
 
 // GetExtendedRCC returns Round-Change-Certificate for the highest round
